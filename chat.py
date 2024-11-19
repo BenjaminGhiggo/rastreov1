@@ -23,22 +23,19 @@ def chat_con_gemini(mensaje):
     except Exception as e:
         return f"Error: {e}"
 
-# Función para analizar archivos en una carpeta local o desde una URL expuesta
+# Función para analizar recursivamente una carpeta local o desde una URL expuesta
 def analizar_ruta_o_url(ruta):
     if ruta.startswith("http://") or ruta.startswith("https://"):
         try:
-            # Hacer la solicitud GET a la URL
             response = requests.get(ruta)
             response.raise_for_status()
 
-            # Intentar interpretar la respuesta como JSON o texto plano
             try:
                 archivos = response.json()
                 if not archivos:
                     return "La carpeta expuesta está vacía."
                 prompt = f"Tengo la siguiente lista de archivos obtenida de la URL {ruta}:\n" + ", ".join(archivos)
             except ValueError:
-                # Si la respuesta no es JSON, manejar como texto plano
                 archivos = response.text.splitlines()
                 if not archivos:
                     return "La URL no devolvió contenido utilizable."
@@ -48,14 +45,21 @@ def analizar_ruta_o_url(ruta):
         except requests.exceptions.RequestException as e:
             return f"Error al acceder a la URL: {e}"
     elif os.path.isdir(ruta):
-        # Si es una ruta local, listar archivos
-        try:
-            archivos = os.listdir(ruta)
-            if not archivos:
-                return "La carpeta local está vacía."
-            prompt = f"Tengo la siguiente lista de archivos en la carpeta local {ruta}:\n" + ", ".join(archivos)
-            return chat_con_gemini(prompt)
-        except Exception as e:
-            return f"Error al acceder a la carpeta local: {e}"
+        return analizar_carpeta_recursiva(ruta)
     else:
         return "Por favor, ingrese una ruta de carpeta válida o una URL expuesta con Ngrok."
+
+# Función para analizar recursivamente una carpeta local
+def analizar_carpeta_recursiva(ruta_carpeta):
+    try:
+        contenido = []
+        for root, dirs, files in os.walk(ruta_carpeta):
+            relative_path = os.path.relpath(root, ruta_carpeta)
+            contenido.append(f"📂 Carpeta: {relative_path}")
+            for archivo in files:
+                contenido.append(f"    📄 Archivo: {archivo}")
+        
+        prompt = f"Estoy analizando la carpeta '{ruta_carpeta}' y encontré lo siguiente:\n\n" + "\n".join(contenido)
+        return chat_con_gemini(prompt)
+    except Exception as e:
+        return f"Error al analizar la carpeta local: {e}"
