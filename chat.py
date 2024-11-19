@@ -22,15 +22,37 @@ def chat_con_usuario():
         if user_input.lower() == 'salir':
             print("Chat finalizado. ¡Hasta luego!")
             break
-        
-        try:
-            # Llamar a la función que genera la respuesta
-            respuesta = chat_con_gemini(user_input)
-            print(f"Chatbot: {respuesta}")
-        except Exception as e:
-            print(f"Error al generar la respuesta: {e}")
 
-# Función reutilizable para generar respuestas desde otros scripts
+        if os.path.isdir(user_input):
+            respuesta = analizar_archivos_en_carpeta(user_input)
+        else:
+            respuesta = chat_con_gemini(user_input)
+        
+        print(f"Chatbot: {respuesta}")
+
+# Función para usar Gemini para clasificar tipos de archivos
+def analizar_archivos_en_carpeta(ruta_carpeta):
+    try:
+        archivos = os.listdir(ruta_carpeta)
+        if not archivos:
+            return "La carpeta está vacía."
+
+        prompt = f"""
+Tengo la siguiente lista de archivos en la carpeta {ruta_carpeta}:
+{', '.join(archivos)}
+
+Por favor, analiza y clasifica cada archivo indicando qué tipo de archivo es según su extensión y, si es posible, su propósito.
+Proporciona una descripción breve para cada tipo de archivo.
+"""
+        model_name = "models/gemini-1.5-flash"
+        model = genai.GenerativeModel(model_name)
+        response = model.generate_content(prompt)
+        return response.text.strip()
+
+    except Exception as e:
+        return f"Error al analizar la carpeta: {e}"
+
+# Función reutilizable para generar respuestas de texto general con Gemini
 def chat_con_gemini(mensaje):
     try:
         model_name = "models/gemini-1.5-flash"  # Asegúrate de que este modelo esté disponible
