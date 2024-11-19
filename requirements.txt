@@ -1,0 +1,5 @@
+# python.exe -m pip install --upgrade pip
+google-generativeai
+python-dotenv
+"--upgrade grpcio"
+streamlit
